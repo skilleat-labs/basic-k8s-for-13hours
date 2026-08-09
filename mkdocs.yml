@@ -1,0 +1,104 @@
+site_name: 기초 쿠버네티스 13시간 실습 가이드
+site_description: 3일(13시간) 과정 · 도커의 한계부터 쿠버네티스 배포·네트워킹·보안까지 직접 따라 하는 실습
+site_author: 스킬잇 김누리
+site_url: https://skilleat-labs.github.io/basic-k8s-for-13hours/
+
+repo_url: https://github.com/skilleat-labs/basic-k8s-for-13hours
+repo_name: skilleat-labs/basic-k8s-for-13hours
+edit_uri: edit/main/docs/
+
+copyright: 자료 제작 · 스킬잇 김누리
+
+theme:
+  name: material
+  language: ko
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: blue
+      accent: blue
+      toggle:
+        icon: material/weather-night
+        name: 다크 모드로 전환
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: blue
+      accent: blue
+      toggle:
+        icon: material/weather-sunny
+        name: 라이트 모드로 전환
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.top
+    - navigation.indexes
+    - navigation.footer
+    - toc.follow
+    - content.code.copy
+    - content.code.annotate
+    - content.tabs.link
+    - search.suggest
+    - search.highlight
+  icon:
+    repo: fontawesome/brands/github
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - footnotes
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.critic
+  - pymdownx.keys
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+
+plugins:
+  - search:
+      lang: ko
+
+nav:
+  - 소개: index.md
+  - 실습 환경 준비:
+      - setup/prerequisites.md
+  - 1일차 · 입문과 워크로드:
+      - day1/index.md
+      - "Lab 1 · 클러스터 접속과 조회": day1/01-cluster-access.md
+      - "Lab 2 · 첫 Pod 실행": day1/02-first-pod.md
+      - "Lab 3 · Pod IP는 휘발성": day1/03-pod-ip-ephemeral.md
+      - "Lab 4 · YAML 매니페스트": day1/04-yaml-manifest.md
+      - "Lab 5 · Deployment와 자가복구": day1/05-deployment-selfheal.md
+      - "Lab 6 · 스케일링": day1/06-scaling.md
+      - "Lab 7 · 롤링 업데이트와 롤백": day1/07-rolling-update.md
+  - 2일차 · 서비스와 네트워킹:
+      - day2/index.md
+      - "Lab 1 · ClusterIP와 DNS": day2/01-clusterip-dns.md
+      - "Lab 2 · Endpoints 디버깅": day2/02-endpoints-debug.md
+      - "Lab 3 · NodePort와 port-forward": day2/03-nodeport-portforward.md
+      - "Lab 4 · LoadBalancer": day2/04-loadbalancer.md
+      - "Lab 5 · Ingress 경로 라우팅": day2/05-ingress-routing.md
+      - "Lab 6 · 3-tier 앱 배포": day2/06-three-tier-app.md
+      - "Lab 7 · ConfigMap": day2/07-configmap.md
+      - "Lab 8 · Secret": day2/08-secret.md
+  - 3일차 · 영속성과 보안:
+      - day3/index.md
+      - "Lab 1 · 데이터 소실 재현": day3/01-data-loss.md
+      - "Lab 2 · PV·PVC·StorageClass": day3/02-pv-pvc.md
+      - "Lab 3 · StatefulSet": day3/03-statefulset.md
+      - "Lab 4 · securityContext 하드닝": day3/04-securitycontext.md
+      - "Lab 5 · Pod Security Admission": day3/05-pod-security-admission.md
+      - "Lab 6 · RBAC 최소 권한": day3/06-rbac.md
+      - "Lab 7 · 토큰 마운트 차단": day3/07-token-hardening.md
+      - "Lab 8 · NetworkPolicy": day3/08-networkpolicy.md
