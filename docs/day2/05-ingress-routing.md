@@ -262,4 +262,4 @@ kubectl delete -f frontend.yaml
 
 ---
 
-다음: [Lab 6 · 3-tier 앱 배포](06-three-tier-app.md)
+다음: [Lab 6 · Gateway API와 HTTPRoute](06-gateway-api.md)

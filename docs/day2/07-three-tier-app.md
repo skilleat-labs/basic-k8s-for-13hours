@@ -1,4 +1,4 @@
-# Lab 6 · 3-tier 앱 배포
+# Lab 7 · 3-tier 앱 배포
 
 지금까지 배운 조각들 — Deployment, ClusterIP Service, Ingress — 을 모아 **프론트엔드 · 백엔드 · 데이터베이스** 로 이루어진 전형적인 3계층(3-tier) 애플리케이션을 통째로 배포합니다. Docker Compose로 여러 컨테이너를 함께 띄워 본 적이 있다면, 그것이 쿠버네티스에서 어떻게 표현되는지 매핑해 봅니다. 또 쿠버네티스에 `depends_on` 이 없는데도 앱이 어떻게 스스로 수렴하는지, readiness/liveness probe가 왜 필요한지 살펴봅니다.
 
@@ -77,7 +77,7 @@ kubectl apply -f db.yaml
 ```
 
 !!! warning "비밀번호를 YAML에 직접 넣지 마세요"
-    여기서는 실습 단순화를 위해 `MYSQL_ROOT_PASSWORD` 를 평문으로 넣었지만, 이는 나쁜 습관입니다. 다음 Lab 7(ConfigMap)·Lab 8(Secret)에서 이런 값을 매니페스트 밖으로 분리하는 법을 배웁니다.
+    여기서는 실습 단순화를 위해 `MYSQL_ROOT_PASSWORD` 를 평문으로 넣었지만, 이는 나쁜 습관입니다. 다음 Lab 8(ConfigMap)·Lab 9(Secret)에서 이런 값을 매니페스트 밖으로 분리하는 법을 배웁니다.
 
 ## 3. 백엔드(backend) 배포 — probe 포함
 
@@ -317,4 +317,4 @@ kubectl delete -f db.yaml
 
 ---
 
-다음: [Lab 7 · ConfigMap](07-configmap.md)
+다음: [Lab 8 · ConfigMap](08-configmap.md)

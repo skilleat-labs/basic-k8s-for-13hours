@@ -1,4 +1,4 @@
-# Lab 5 · Deployment와 자가복구
+# Lab 6 · Deployment와 자가복구
 
 Pod 를 직접 만들면 죽어도 아무도 되살리지 않습니다. **Deployment** 는 "항상 N개의 Pod 가 떠 있어야 한다"고 선언해 두면, 하나가 사라져도 알아서 다시 만들어 줍니다. 이 **자가복구(self-healing)** 를 직접 재현해 봅니다.
 
@@ -10,7 +10,7 @@ Pod 를 직접 만들면 죽어도 아무도 되살리지 않습니다. **Deploy
 
 ## 사전 조건
 
-- [Lab 4](04-yaml-manifest.md) 를 마치고 `default` 에 `web` Pod 가 없는 상태(`kubectl get pods` → `No resources found`).
+- [Lab 5](05-yaml-manifest.md) 를 마치고 `default` 에 `web` Pod 가 없는 상태(`kubectl get pods` → `No resources found`).
 
 ## 1. Deployment 매니페스트 작성
 
@@ -95,7 +95,7 @@ Deployment (web)
 ```
 
 !!! info "왜 ReplicaSet 이 중간에 끼나요?"
-    개수 유지는 ReplicaSet 이, 버전 전환(롤링 업데이트·롤백)은 Deployment 가 담당하도록 역할을 나눈 구조입니다. 새 버전을 배포하면 Deployment 가 **새 ReplicaSet** 을 하나 더 만들어 트래픽을 옮깁니다. 이 장면은 [Lab 7](07-rolling-update.md) 에서 봅니다.
+    개수 유지는 ReplicaSet 이, 버전 전환(롤링 업데이트·롤백)은 Deployment 가 담당하도록 역할을 나눈 구조입니다. 새 버전을 배포하면 Deployment 가 **새 ReplicaSet** 을 하나 더 만들어 트래픽을 옮깁니다. 이 장면은 [Lab 8](08-rolling-update.md) 에서 봅니다.
 
 ## 3. 소유 관계 확인 (ownerReferences)
 
@@ -159,7 +159,7 @@ web-6f9c8d7b5-9wq2t     1/1     Running   0          30s
 ```
 
 !!! note "이게 바로 자가복구입니다"
-    ReplicaSet 은 "실제 Pod 수 = 원하는 수(3)"를 끊임없이 감시합니다. 하나가 사라져 2개가 되는 순간, 즉시 새 Pod 를 만들어 3개로 되돌립니다. [Lab 3](03-pod-ip-ephemeral.md) 에서 명령형 Pod 는 지우면 끝이었던 것과 정반대죠. **개별 Pod 는 소모품, 원하는 상태는 유지된다** — 이것이 쿠버네티스를 쓰는 가장 큰 이유입니다.
+    ReplicaSet 은 "실제 Pod 수 = 원하는 수(3)"를 끊임없이 감시합니다. 하나가 사라져 2개가 되는 순간, 즉시 새 Pod 를 만들어 3개로 되돌립니다. [Lab 4](04-pod-ip-ephemeral.md) 에서 명령형 Pod 는 지우면 끝이었던 것과 정반대죠. **개별 Pod 는 소모품, 원하는 상태는 유지된다** — 이것이 쿠버네티스를 쓰는 가장 큰 이유입니다.
 
 ++ctrl+c++ 로 `-w` 감시를 종료합니다.
 
@@ -197,8 +197,8 @@ kubectl get pods -l app=web
 
 ## 정리
 
-다음 [Lab 6](06-scaling.md), [Lab 7](07-rolling-update.md) 에서 이 Deployment 를 계속 사용하므로 **지금은 삭제하지 마세요.** (전부 끝내고 정리하고 싶다면 `kubectl delete -f deployment.yaml`.)
+다음 [Lab 7](07-scaling.md), [Lab 8](08-rolling-update.md) 에서 이 Deployment 를 계속 사용하므로 **지금은 삭제하지 마세요.** (전부 끝내고 정리하고 싶다면 `kubectl delete -f deployment.yaml`.)
 
 ---
 
-다음: [Lab 6 · 스케일링](06-scaling.md)
+다음: [Lab 7 · 스케일링](07-scaling.md)

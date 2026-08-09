@@ -1,4 +1,4 @@
-# Lab 2 · 첫 Pod 실행
+# Lab 3 · 첫 Pod 실행
 
 명령 한 줄로 첫 **Pod** 를 띄우고, 로그를 보고, 컨테이너 안으로 들어가 봅니다. 도커를 써 봤다면 명령이 얼마나 비슷한지도 확인합니다.
 
@@ -11,7 +11,7 @@
 
 ## 사전 조건
 
-- [Lab 1](01-cluster-access.md) 을 마치고 `kubectl get nodes` 가 `Ready` 상태.
+- [Lab 2](02-cluster-access.md) 을 마치고 `kubectl get nodes` 가 `Ready` 상태.
 
 ## 1. Pod 실행하기
 
@@ -56,7 +56,7 @@ web    1/1     Running   0          40s   10.42.0.24   lima-rancher-desktop   <n
 - `NODE` 는 이 Pod 가 실제로 실행 중인 노드입니다. 단일 노드라 항상 `lima-rancher-desktop` 입니다.
 
 !!! warning "이 IP, 외워 두세요"
-    다음 실습([Lab 3](03-pod-ip-ephemeral.md))에서 이 IP 가 어떻게 되는지 확인합니다. 지금 값을 메모해 두면 좋습니다.
+    다음 실습([Lab 4](04-pod-ip-ephemeral.md))에서 이 IP 가 어떻게 되는지 확인합니다. 지금 값을 메모해 두면 좋습니다.
 
 ## 3. Events 로 뜨는 과정 읽기
 
@@ -189,7 +189,7 @@ Forwarding from [::1]:8080 -> 80
 | 삭제 | `docker rm <c>` | `kubectl delete pod <pod>` |
 
 !!! info "닮았지만 다릅니다"
-    도커는 "이 컨테이너를 실행"하는 명령형 도구입니다. 쿠버네티스는 "이런 상태를 원한다"고 선언하면 그 상태를 **유지**해 주는 시스템입니다. 그 차이는 [Lab 5](05-deployment-selfheal.md) 의 자가복구에서 확실히 체감하게 됩니다.
+    도커는 "이 컨테이너를 실행"하는 명령형 도구입니다. 쿠버네티스는 "이런 상태를 원한다"고 선언하면 그 상태를 **유지**해 주는 시스템입니다. 그 차이는 [Lab 6](06-deployment-selfheal.md) 의 자가복구에서 확실히 체감하게 됩니다.
 
 ## 검증
 
@@ -204,7 +204,7 @@ kubectl logs web
 ## 직접 해 보기
 
 1. `kubectl exec -it web -- sh` 로 들어가서 `cat /usr/share/nginx/html/index.html` 로 nginx 기본 페이지의 원본 HTML 을 직접 확인해 보세요.
-2. `kubectl run box --image=busybox -it --rm -- sh` 로 일회용 busybox Pod 를 띄운 뒤, 그 안에서 `wget -qO- 10.42.0.24`(Lab 2 에서 본 web 의 IP)를 실행해 보세요. Pod 끼리는 IP 로 직접 통신됨을 확인할 수 있습니다. (`--rm` 이라 `exit` 하면 Pod 가 자동 삭제됩니다.)
+2. `kubectl run box --image=busybox -it --rm -- sh` 로 일회용 busybox Pod 를 띄운 뒤, 그 안에서 `wget -qO- 10.42.0.24`(Lab 3 에서 본 web 의 IP)를 실행해 보세요. Pod 끼리는 IP 로 직접 통신됨을 확인할 수 있습니다. (`--rm` 이라 `exit` 하면 Pod 가 자동 삭제됩니다.)
 
 !!! failure "자주 만나는 오류"
     **증상**: `Error from server (AlreadyExists): pods "web" already exists`
@@ -233,4 +233,4 @@ kubectl delete pod web
 
 ---
 
-다음: [Lab 3 · Pod IP는 휘발성](03-pod-ip-ephemeral.md)
+다음: [Lab 4 · Pod IP는 휘발성](04-pod-ip-ephemeral.md)

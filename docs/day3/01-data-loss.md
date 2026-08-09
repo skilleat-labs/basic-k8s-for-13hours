@@ -105,7 +105,7 @@ mysql: [Warning] Using a password on the command line interface can be insecure.
 ```
 
 !!! note "비밀번호 경고는 정상"
-    명령줄에 비밀번호를 직접 쓰면 위 경고가 뜹니다. 실습에서는 무시해도 됩니다. 실무에서는 3일차 Lab 7에서 배울 Secret 으로 관리합니다.
+    명령줄에 비밀번호를 직접 쓰면 위 경고가 뜹니다. 실습에서는 무시해도 됩니다. 실무에서는 3일차 Lab 6에서 배울 Secret 으로 관리합니다.
 
 데이터가 잘 들어갔는지 조회합니다.
 

@@ -1,4 +1,4 @@
-# Lab 4 · securityContext 하드닝
+# Lab 3 · securityContext 하드닝
 
 기본 설정으로 배포된 컨테이너는 대부분 **root(관리자)** 권한으로 실행됩니다. 공격자가 컨테이너 내부로 침입하면, root 권한은 침입을 컨테이너 탈출이나 노드 장악으로 키우는 발판이 됩니다. 이번 실습에서는 먼저 root 로 도는 컨테이너의 위험을 재현한 뒤, `securityContext` 로 권한을 하나씩 깎아 방어하는 과정을 실습합니다. 여기서부터는 **공격 재현(빨강)** 과 **방어 적용(파랑)** 을 나눠 진행합니다.
 
@@ -280,4 +280,4 @@ pod "hardened-pod" deleted
 
 ---
 
-다음: [Lab 5 · Pod Security Admission](05-pod-security-admission.md)
+다음: [Lab 4 · Pod Security Admission](04-pod-security-admission.md)

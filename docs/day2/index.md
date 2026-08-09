@@ -1,6 +1,6 @@
 # 2일차 · 서비스와 네트워킹
 
-Pod는 언제든 죽고 다시 생기며 IP가 바뀝니다. 오늘은 **Service** 로 안정적인 주소를 부여하고, **NodePort·LoadBalancer·Ingress** 로 외부에 노출하며, **ConfigMap·Secret** 으로 설정과 자격증명을 코드에서 분리합니다. 마지막에는 프론트·백엔드·DB로 이루어진 **3-tier 앱** 을 통째로 배포합니다.
+Pod는 언제든 죽고 다시 생기며 IP가 바뀝니다. 오늘은 **Service** 로 안정적인 주소를 부여하고, **NodePort·LoadBalancer·Ingress·Gateway API** 로 외부에 노출하며, **ConfigMap·Secret** 으로 설정과 자격증명을 코드에서 분리합니다. 마지막에는 프론트·백엔드·DB로 이루어진 **3-tier 앱** 을 통째로 배포합니다.
 
 ## 오늘의 실습
 
@@ -11,9 +11,10 @@ Pod는 언제든 죽고 다시 생기며 IP가 바뀝니다. 오늘은 **Service
 | 3 | [NodePort와 port-forward](03-nodeport-portforward.md) | 외부 노출 기초, 포트 3종, 임시 접근 |
 | 4 | [LoadBalancer](04-loadbalancer.md) | 서비스 타입 계층, 외부 IP 할당 |
 | 5 | [Ingress 경로 라우팅](05-ingress-routing.md) | `/`→프론트, `/api`→백엔드 경로 라우팅 |
-| 6 | [3-tier 앱 배포](06-three-tier-app.md) | 프론트·백엔드·DB 통합 배포 |
-| 7 | [ConfigMap](07-configmap.md) | 환경변수·볼륨으로 설정 주입 |
-| 8 | [Secret](08-secret.md) | DB 자격증명 분리, `rollout restart` |
+| 6 | [Gateway API와 HTTPRoute](06-gateway-api.md) | 차세대 표준, 역할 분리(GatewayClass/Gateway/HTTPRoute) |
+| 7 | [3-tier 앱 배포](07-three-tier-app.md) | 프론트·백엔드·DB 통합 배포 |
+| 8 | [ConfigMap](08-configmap.md) | 환경변수·볼륨으로 설정 주입 |
+| 9 | [Secret](09-secret.md) | DB 자격증명 분리, `rollout restart` |
 
 !!! note "사전 준비"
     1일차를 마쳤거나, 최소한 Pod/Deployment 개념과 `kubectl apply -f` 사용에 익숙해야 합니다.

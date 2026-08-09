@@ -1,4 +1,4 @@
-# Lab 3 · Pod IP는 휘발성
+# Lab 4 · Pod IP는 휘발성
 
 Pod 를 지웠다가 다시 만들면 IP 가 바뀝니다. 직접 재현해 보고, 왜 Pod IP 를 절대 하드코딩하면 안 되는지 — 그래서 왜 **Service** 가 필요한지 — 를 이해합니다.
 
@@ -10,7 +10,7 @@ Pod 를 지웠다가 다시 만들면 IP 가 바뀝니다. 직접 재현해 보�
 
 ## 사전 조건
 
-- [Lab 2](02-first-pod.md) 에서 만든 `web` Pod 가 `Running` 상태.
+- [Lab 3](03-first-pod.md) 에서 만든 `web` Pod 가 `Running` 상태.
 - 없다면 먼저 실행합니다.
 
 ```bash
@@ -54,7 +54,7 @@ No resources found in default namespace.
 ```
 
 !!! warning "명령형 Pod 는 되살아나지 않습니다"
-    `kubectl run` 으로 직접 만든 Pod 는 삭제하면 그대로 끝입니다. 아무도 다시 만들어 주지 않습니다. (이걸 자동으로 되살려 주는 게 [Lab 5](05-deployment-selfheal.md) 의 Deployment 입니다.)
+    `kubectl run` 으로 직접 만든 Pod 는 삭제하면 그대로 끝입니다. 아무도 다시 만들어 주지 않습니다. (이걸 자동으로 되살려 주는 게 [Lab 6](06-deployment-selfheal.md) 의 Deployment 입니다.)
 
 ## 3. 다시 만들기
 
@@ -128,7 +128,7 @@ kubectl get pod web -o wide
 
 ## 정리
 
-다음 실습([Lab 4](04-yaml-manifest.md))에서 같은 `web` 을 YAML 로 다시 만들 것이므로, 지금 명령형으로 만든 Pod 는 삭제하고 넘어갑니다.
+다음 실습([Lab 5](05-yaml-manifest.md))에서 같은 `web` 을 YAML 로 다시 만들 것이므로, 지금 명령형으로 만든 Pod 는 삭제하고 넘어갑니다.
 
 ```bash
 kubectl delete pod web
@@ -136,4 +136,4 @@ kubectl delete pod web
 
 ---
 
-다음: [Lab 4 · YAML 매니페스트](04-yaml-manifest.md)
+다음: [Lab 5 · YAML 매니페스트](05-yaml-manifest.md)

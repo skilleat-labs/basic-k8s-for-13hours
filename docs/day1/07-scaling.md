@@ -1,4 +1,4 @@
-# Lab 6 · 스케일링
+# Lab 7 · 스케일링
 
 트래픽이 늘면 Pod 개수를 늘려 부하를 나눕니다(수평 확장). 명령형(`kubectl scale`)과 선언형(YAML 수정 후 apply) 두 가지로 Pod 수를 조절하고, `kubectl top` 으로 사용량도 확인해 봅니다.
 
@@ -10,7 +10,7 @@
 
 ## 사전 조건
 
-- [Lab 5](05-deployment-selfheal.md) 에서 만든 Deployment `web` 이 `READY 3/3` 로 실행 중.
+- [Lab 6](06-deployment-selfheal.md) 에서 만든 Deployment `web` 이 `READY 3/3` 로 실행 중.
 - 확인: `kubectl get deploy web`
 
 ## 1. 명령형으로 스케일 아웃
@@ -191,8 +191,8 @@ kubectl top pods
 
 ## 정리
 
-다음 [Lab 7](07-rolling-update.md) 에서 이 Deployment 를 계속 사용하므로 **지금은 삭제하지 마세요.**
+다음 [Lab 8](08-rolling-update.md) 에서 이 Deployment 를 계속 사용하므로 **지금은 삭제하지 마세요.**
 
 ---
 
-다음: [Lab 7 · 롤링 업데이트와 롤백](07-rolling-update.md)
+다음: [Lab 8 · 롤링 업데이트와 롤백](08-rolling-update.md)

@@ -75,13 +75,14 @@ nav:
       - setup/prerequisites.md
   - 1일차 · 입문과 워크로드:
       - day1/index.md
-      - "Lab 1 · 클러스터 접속과 조회": day1/01-cluster-access.md
-      - "Lab 2 · 첫 Pod 실행": day1/02-first-pod.md
-      - "Lab 3 · Pod IP는 휘발성": day1/03-pod-ip-ephemeral.md
-      - "Lab 4 · YAML 매니페스트": day1/04-yaml-manifest.md
-      - "Lab 5 · Deployment와 자가복구": day1/05-deployment-selfheal.md
-      - "Lab 6 · 스케일링": day1/06-scaling.md
-      - "Lab 7 · 롤링 업데이트와 롤백": day1/07-rolling-update.md
+      - "Lab 1 · 도커의 한계와 쿠버네티스": day1/01-docker-and-k8s.md
+      - "Lab 2 · 클러스터 접속과 조회": day1/02-cluster-access.md
+      - "Lab 3 · 첫 Pod 실행": day1/03-first-pod.md
+      - "Lab 4 · Pod IP는 휘발성": day1/04-pod-ip-ephemeral.md
+      - "Lab 5 · YAML 매니페스트": day1/05-yaml-manifest.md
+      - "Lab 6 · Deployment와 자가복구": day1/06-deployment-selfheal.md
+      - "Lab 7 · 스케일링": day1/07-scaling.md
+      - "Lab 8 · 롤링 업데이트와 롤백": day1/08-rolling-update.md
   - 2일차 · 서비스와 네트워킹:
       - day2/index.md
       - "Lab 1 · ClusterIP와 DNS": day2/01-clusterip-dns.md
@@ -89,16 +90,16 @@ nav:
       - "Lab 3 · NodePort와 port-forward": day2/03-nodeport-portforward.md
       - "Lab 4 · LoadBalancer": day2/04-loadbalancer.md
       - "Lab 5 · Ingress 경로 라우팅": day2/05-ingress-routing.md
-      - "Lab 6 · 3-tier 앱 배포": day2/06-three-tier-app.md
-      - "Lab 7 · ConfigMap": day2/07-configmap.md
-      - "Lab 8 · Secret": day2/08-secret.md
+      - "Lab 6 · Gateway API와 HTTPRoute": day2/06-gateway-api.md
+      - "Lab 7 · 3-tier 앱 배포": day2/07-three-tier-app.md
+      - "Lab 8 · ConfigMap": day2/08-configmap.md
+      - "Lab 9 · Secret": day2/09-secret.md
   - 3일차 · 영속성과 보안:
       - day3/index.md
       - "Lab 1 · 데이터 소실 재현": day3/01-data-loss.md
       - "Lab 2 · PV·PVC·StorageClass": day3/02-pv-pvc.md
-      - "Lab 3 · StatefulSet": day3/03-statefulset.md
-      - "Lab 4 · securityContext 하드닝": day3/04-securitycontext.md
-      - "Lab 5 · Pod Security Admission": day3/05-pod-security-admission.md
-      - "Lab 6 · RBAC 최소 권한": day3/06-rbac.md
-      - "Lab 7 · 토큰 마운트 차단": day3/07-token-hardening.md
-      - "Lab 8 · NetworkPolicy": day3/08-networkpolicy.md
+      - "Lab 3 · securityContext 하드닝": day3/03-securitycontext.md
+      - "Lab 4 · Pod Security Admission": day3/04-pod-security-admission.md
+      - "Lab 5 · RBAC 최소 권한": day3/05-rbac.md
+      - "Lab 6 · 토큰 마운트 차단": day3/06-token-hardening.md
+      - "Lab 7 · NetworkPolicy": day3/07-networkpolicy.md

@@ -156,4 +156,4 @@ kubectl config use-context rancher-desktop
 
 ---
 
-준비가 끝났으면 **[1일차 Lab 1](../day1/01-cluster-access.md)** 으로 이동하세요.
+준비가 끝났으면 **[1일차 Lab 1 · 도커의 한계와 쿠버네티스](../day1/01-docker-and-k8s.md)** 로 이동하세요.

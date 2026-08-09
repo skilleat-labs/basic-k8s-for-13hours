@@ -1,4 +1,4 @@
-# Lab 8 · Secret
+# Lab 9 · Secret
 
 ConfigMap은 평문 설정에 적합하지만, DB 비밀번호나 API 키 같은 **민감한 값** 을 담기에는 적절하지 않습니다. 쿠버네티스는 이런 값을 위해 **Secret** 이라는 별도 객체를 제공합니다. Secret은 ConfigMap과 거의 똑같이 쓰지만, 값이 base64로 인코딩되어 저장되고 접근을 더 통제할 수 있습니다. 이번 실습에서는 Secret을 만들어 환경변수로 주입하고, **"base64는 암호화가 아니다"** 라는 중요한 사실을 직접 확인합니다.
 
@@ -199,7 +199,7 @@ base64가 암호화가 아니라면, 민감한 값을 실제로 지키는 것은
 
 !!! question "도전 과제"
     1. ConfigMap의 `envFrom` 처럼 Secret도 `envFrom: - secretRef: { name: db-secret }` 로 통째 주입할 수 있습니다. 바꿔서 시도해 보세요.
-    2. Secret을 볼륨으로 마운트(`/etc/secret`)하면 각 키가 파일로 나타납니다. Lab 7의 볼륨 방식을 참고해 `cat /etc/secret/DB_PASSWORD` 로 원문을 확인해 보세요.
+    2. Secret을 볼륨으로 마운트(`/etc/secret`)하면 각 키가 파일로 나타납니다. Lab 8의 볼륨 방식을 참고해 `cat /etc/secret/DB_PASSWORD` 로 원문을 확인해 보세요.
     3. `kubectl get secret db-secret -o jsonpath='{.data.DB_PASSWORD}'` 로 base64를 꺼내, OS별 디코딩 명령으로 원문을 복원해 보세요.
 
 ## 자주 만나는 오류

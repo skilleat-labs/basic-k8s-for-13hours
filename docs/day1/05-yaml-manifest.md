@@ -1,4 +1,4 @@
-# Lab 4 · YAML 매니페스트
+# Lab 5 · YAML 매니페스트
 
 지금까지는 `kubectl run` 으로 명령을 직접 내렸습니다. 이제 원하는 상태를 **YAML 파일(매니페스트)** 로 적어 두고 `apply` 하는 **선언형** 방식을 배웁니다. 실무의 표준 방식입니다.
 
@@ -10,7 +10,7 @@
 
 ## 사전 조건
 
-- [Lab 3](03-pod-ip-ephemeral.md) 을 마치고 `default` 네임스페이스에 `web` Pod 가 없는 상태.
+- [Lab 4](04-pod-ip-ephemeral.md) 을 마치고 `default` 네임스페이스에 `web` Pod 가 없는 상태.
 - 확인: `kubectl get pods` → `No resources found` 여야 합니다.
 
 ## 1. 매니페스트 작성하기
@@ -42,7 +42,7 @@ spec:
 | `spec` | 원하는 상태(무엇을, 어떻게) | 컨테이너·이미지·포트 |
 
 !!! tip "필드가 헷갈리면 explain"
-    "`spec` 밑에 뭘 쓸 수 있더라?" 싶으면 [Lab 1](01-cluster-access.md) 에서 배운 `kubectl explain pod.spec` 을 다시 써 보세요. 매니페스트를 쓸 때 늘 곁에 두는 도구입니다.
+    "`spec` 밑에 뭘 쓸 수 있더라?" 싶으면 [Lab 2](02-cluster-access.md) 에서 배운 `kubectl explain pod.spec` 을 다시 써 보세요. 매니페스트를 쓸 때 늘 곁에 두는 도구입니다.
 
 ## 2. 적용하기 (apply)
 
@@ -220,4 +220,4 @@ pod "web" deleted
 
 ---
 
-다음: [Lab 5 · Deployment와 자가복구](05-deployment-selfheal.md)
+다음: [Lab 6 · Deployment와 자가복구](06-deployment-selfheal.md)

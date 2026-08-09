@@ -1,4 +1,4 @@
-# Lab 6 · RBAC 최소 권한
+# Lab 5 · RBAC 최소 권한
 
 클러스터 안의 앱과 사용자는 저마다 **필요한 만큼의 권한만** 가져야 합니다. 로그 조회만 하면 되는 앱이 Secret 을 읽거나 Pod 를 삭제할 수 있다면, 그 앱이 탈취됐을 때 피해가 걷잡을 수 없이 커집니다. **RBAC(Role-Based Access Control)** 는 "누가 무엇을 할 수 있는가"를 정밀하게 통제하는 쿠버네티스의 권한 체계입니다. 이번 실습에서는 Pod 조회만 허용하는 ServiceAccount 를 만들고, `kubectl auth can-i` 로 권한이 딱 그만큼만 부여됐는지 검증합니다.
 
@@ -197,7 +197,7 @@ rules:
 ## 직접 해 보기
 
 1. Role 의 `verbs` 에 `create` 를 추가하고 다시 적용한 뒤, `kubectl auth can-i create pods --as=...` 가 `yes` 로 바뀌는지 확인해 보세요. 권한이 실시간으로 반영되는 것을 체감할 수 있습니다.
-2. `app-sa` 를 실제 Pod 에 붙여(`spec.serviceAccountName: app-sa`) 배포한 뒤, 그 Pod 안에서 `kubectl` 로 Pod 목록은 되고 Secret 조회는 안 되는지 확인해 보세요. (다음 Lab 7 에서 이 토큰 마운트를 더 깊이 다룹니다.)
+2. `app-sa` 를 실제 Pod 에 붙여(`spec.serviceAccountName: app-sa`) 배포한 뒤, 그 Pod 안에서 `kubectl` 로 Pod 목록은 되고 Secret 조회는 안 되는지 확인해 보세요. (다음 Lab 6 에서 이 토큰 마운트를 더 깊이 다룹니다.)
 
 !!! failure "자주 만나는 오류"
     **증상**: `auth can-i list pods` 가 예상과 달리 `no`
@@ -224,4 +224,4 @@ namespace "rbac-demo" deleted
 
 ---
 
-다음: [Lab 7 · 토큰 마운트 차단](07-token-hardening.md)
+다음: [Lab 6 · 토큰 마운트 차단](06-token-hardening.md)

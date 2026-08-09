@@ -1,4 +1,4 @@
-# Lab 7 · ConfigMap
+# Lab 8 · ConfigMap
 
 앞선 실습에서 환경변수와 비밀번호를 매니페스트에 직접 박아 넣었습니다. 설정이 코드(YAML)에 섞이면, 값 하나 바꾸려고 이미지를 다시 만들거나 매니페스트를 여기저기 고쳐야 합니다. **ConfigMap** 은 이런 **설정값을 애플리케이션에서 분리** 해 별도 객체로 관리하게 해 줍니다. 이번 실습에서는 ConfigMap을 만들고, 환경변수와 볼륨 세 가지 방식으로 Pod에 주입하며, 값이 바뀌었을 때 실행 중인 Pod에 어떻게(또는 왜 안) 반영되는지 확인합니다.
 
@@ -273,4 +273,4 @@ kubectl delete configmap app-config app-file-config
 
 ---
 
-다음: [Lab 8 · Secret](08-secret.md)
+다음: [Lab 9 · Secret](09-secret.md)

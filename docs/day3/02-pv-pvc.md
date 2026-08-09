@@ -259,7 +259,7 @@ pod "mysql-pv-7d4c8f9b6d-abcde" deleted
 
 ## 정리
 
-다음 실습(StatefulSet)에서는 새 리소스를 쓰므로 여기서 정리합니다. PVC 를 지우면 `local-path` 의 회수 정책(`Delete`)에 따라 PV 와 실제 데이터도 함께 삭제됩니다.
+다음 실습은 다른 주제(보안)로 넘어가므로 여기서 정리합니다. PVC 를 지우면 `local-path` 의 회수 정책(`Delete`)에 따라 PV 와 실제 데이터도 함께 삭제됩니다.
 
 ```bash
 kubectl delete -f mysql-pv.yaml
@@ -283,4 +283,4 @@ No resources found
 
 ---
 
-다음: [Lab 3 · StatefulSet](03-statefulset.md)
+다음: [Lab 3 · securityContext 하드닝](03-securitycontext.md)

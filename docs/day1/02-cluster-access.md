@@ -1,4 +1,4 @@
-# Lab 1 · 클러스터 접속과 조회
+# Lab 2 · 클러스터 접속과 조회
 
 `kubectl` 로 로컬 쿠버네티스 클러스터에 접속해, 노드와 시스템 구성요소를 들여다봅니다. 앞으로 모든 실습에서 반복하게 될 **조회 3종 세트(get → describe → explain)** 습관을 여기서 몸에 익힙니다.
 
@@ -320,4 +320,4 @@ kubectl get pods -n kube-system
 
 ---
 
-다음: [Lab 2 · 첫 Pod 실행](02-first-pod.md)
+다음: [Lab 3 · 첫 Pod 실행](03-first-pod.md)

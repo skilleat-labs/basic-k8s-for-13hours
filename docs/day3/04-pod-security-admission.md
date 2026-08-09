@@ -1,6 +1,6 @@
-# Lab 5 · Pod Security Admission
+# Lab 4 · Pod Security Admission
 
-Lab 4 에서 `securityContext` 로 Pod 하나하나를 안전하게 만드는 법을 배웠습니다. 하지만 개발자가 실수로 하드닝을 빠뜨리면 어떻게 될까요? 위험한 Pod 가 그대로 배포됩니다. **Pod Security Admission(PSA)** 은 네임스페이스 단위로 "이 네임스페이스에는 안전 기준을 만족하는 Pod 만 들어올 수 있다"는 **문지기(정책)** 를 세웁니다. 이번 실습에서는 `restricted` 정책을 건 네임스페이스에 위험한 Pod 를 넣으려다 **거부당하는** 것을 재현하고, 규격을 갖춘 Pod 는 통과하는 것을 확인합니다.
+Lab 3 에서 `securityContext` 로 Pod 하나하나를 안전하게 만드는 법을 배웠습니다. 하지만 개발자가 실수로 하드닝을 빠뜨리면 어떻게 될까요? 위험한 Pod 가 그대로 배포됩니다. **Pod Security Admission(PSA)** 은 네임스페이스 단위로 "이 네임스페이스에는 안전 기준을 만족하는 Pod 만 들어올 수 있다"는 **문지기(정책)** 를 세웁니다. 이번 실습에서는 `restricted` 정책을 건 네임스페이스에 위험한 Pod 를 넣으려다 **거부당하는** 것을 재현하고, 규격을 갖춘 Pod 는 통과하는 것을 확인합니다.
 
 !!! abstract "이 실습에서 배우는 것"
     - 네임스페이스 라벨로 Pod Security 정책을 적용하는 법
@@ -10,7 +10,7 @@ Lab 4 에서 `securityContext` 로 Pod 하나하나를 안전하게 만드는 �
 
 ## 사전 조건
 
-- Lab 4 에서 `securityContext` 필드에 익숙해져 있어야 합니다.
+- Lab 3 에서 `securityContext` 필드에 익숙해져 있어야 합니다.
 - k8s 1.25 이상이면 PSA 가 내장되어 있습니다(k3s 포함). 버전을 확인합니다.
 
 ```bash
@@ -92,7 +92,7 @@ Error from server (Forbidden): error when creating "bad-pod.yaml": pods "bad-pod
 ```
 
 !!! success "위험한 Pod 가 아예 거부됐습니다"
-    `Error from server (Forbidden): ... violates PodSecurity "restricted"` — Pod 가 **생성조차 되지 못하고** 거부됐습니다. 오류 메시지가 무엇이 부족한지 친절하게 알려줍니다: `allowPrivilegeEscalation`, `capabilities.drop`, `runAsNonRoot`, `seccompProfile` 를 설정하라고요. Lab 4 에서는 개발자가 하드닝을 "해야" 안전했다면, 여기서는 하드닝하지 않으면 "배포가 막힙니다". 정책이 강제되는 것입니다.
+    `Error from server (Forbidden): ... violates PodSecurity "restricted"` — Pod 가 **생성조차 되지 못하고** 거부됐습니다. 오류 메시지가 무엇이 부족한지 친절하게 알려줍니다: `allowPrivilegeEscalation`, `capabilities.drop`, `runAsNonRoot`, `seccompProfile` 를 설정하라고요. Lab 3 에서는 개발자가 하드닝을 "해야" 안전했다면, 여기서는 하드닝하지 않으면 "배포가 막힙니다". 정책이 강제되는 것입니다.
 
 정말 아무것도 안 만들어졌는지 확인합니다.
 
@@ -107,7 +107,7 @@ No resources found in secure-ns namespace.
 ## 3. 방어 규격을 갖춘 Pod 배포
 
 !!! success "방어 적용 · 규격을 지키면 통과한다"
-    이번엔 `restricted` 기준을 모두 만족하는 Pod 를 배포합니다. Lab 4 의 하드닝에 `seccompProfile` 을 더한 형태입니다.
+    이번엔 `restricted` 기준을 모두 만족하는 Pod 를 배포합니다. Lab 3 의 하드닝에 `seccompProfile` 을 더한 형태입니다.
 
 `good-pod.yaml`
 
@@ -213,4 +213,4 @@ namespace "secure-ns" deleted
 
 ---
 
-다음: [Lab 6 · RBAC 최소 권한](06-rbac.md)
+다음: [Lab 5 · RBAC 최소 권한](05-rbac.md)

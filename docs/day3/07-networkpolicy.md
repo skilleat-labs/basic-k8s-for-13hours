@@ -1,4 +1,4 @@
-# Lab 8 · NetworkPolicy
+# Lab 7 · NetworkPolicy
 
 기본 상태의 쿠버네티스에서는 **모든 Pod 가 서로 자유롭게 통신**할 수 있습니다. 프론트엔드가 데이터베이스에 직접 접속하는 것도, 침입당한 Pod 가 옆의 다른 Pod 로 옮겨 가는 것(내부 이동, lateral movement)도 아무 제약이 없습니다. **NetworkPolicy** 는 Pod 사이의 트래픽에 방화벽 규칙을 세워, "누가 누구에게 말을 걸 수 있는가"를 통제합니다. 이번 실습에서는 3계층(frontend·backend·db) 앱을 배포하고, **전면 차단(default deny)** 후 **의도한 경로만 선별 허용**하는 정석적인 접근을 실습합니다.
 

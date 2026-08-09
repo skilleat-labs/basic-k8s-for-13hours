@@ -1,4 +1,4 @@
-# Lab 7 · 토큰 마운트 차단
+# Lab 6 · 토큰 마운트 차단
 
 쿠버네티스는 기본적으로 모든 Pod 안에 **ServiceAccount 토큰**을 자동으로 넣어 줍니다. 이 토큰은 API 서버에 말을 걸 수 있는 자격 증명입니다. 문제는 대부분의 앱이 이 토큰을 전혀 쓰지 않는데도 컨테이너 안에 그대로 놓여 있다는 점입니다. 공격자가 컨테이너에 침입하면 이 토큰을 주워 클러스터를 정찰하는 발판으로 삼습니다. 이번 실습에서는 토큰이 자동으로 마운트되는 것을 확인하고(공격 재현), `automountServiceAccountToken: false` 로 그 통로를 막습니다(방어 적용).
 
@@ -6,11 +6,11 @@
     - 모든 Pod 에 SA 토큰이 자동 마운트되는 위치와 위험
     - 탈취된 토큰으로 공격자가 무엇을 할 수 있는지(정찰)
     - `automountServiceAccountToken: false` 로 토큰 마운트를 차단하는 법
-    - RBAC(Lab 6)와 결합해 방어를 강화하는 원리
+    - RBAC(Lab 5)와 결합해 방어를 강화하는 원리
 
 ## 사전 조건
 
-- Lab 6(RBAC)을 먼저 이해하면 이 실습의 방어 원리가 더 잘 이해됩니다.
+- Lab 5(RBAC)을 먼저 이해하면 이 실습의 방어 원리가 더 잘 이해됩니다.
 - 클러스터가 정상인지 확인합니다.
 
 ```bash
@@ -92,7 +92,7 @@ kubectl exec default-pod -- sh -c 'TOKEN=$(cat /var/run/secrets/kubernetes.io/se
 !!! danger "토큰이 실제로 통합니다"
     컨테이너 안에서 아무런 외부 도구 없이 API 서버로부터 응답을 받았습니다. 이 `default` ServiceAccount 자체의 기본 권한은 낮지만, 공격자는 이 발판으로 클러스터를 정찰합니다. 밖에서보다 훨씬 편하게 API 를 두드릴 수 있는 상태입니다.
 
-`default` ServiceAccount 가 어디까지 할 수 있는지 정찰하는 관점에서 확인해 봅니다(Lab 6 의 `auth can-i` 활용).
+`default` ServiceAccount 가 어디까지 할 수 있는지 정찰하는 관점에서 확인해 봅니다(Lab 5 의 `auth can-i` 활용).
 
 ```bash
 kubectl auth can-i --list --as=system:serviceaccount:default:default
@@ -178,12 +178,12 @@ serviceaccount/restricted-sa created
 !!! tip "Pod 설정이 SA 설정보다 우선합니다"
     ServiceAccount 에서 `false` 로 꺼 두더라도, 특정 Pod 에서 `automountServiceAccountToken: true` 로 지정하면 그 Pod 만 토큰을 받습니다. 기본은 SA 에서 끄고(안전 우선), 정말 API 가 필요한 Pod 에서만 개별적으로 켜는 방식이 깔끔합니다.
 
-## RBAC 와 함께 쓰기 (Lab 6 연계)
+## RBAC 와 함께 쓰기 (Lab 5 연계)
 
 토큰 차단은 강력하지만, API 를 실제로 써야 하는 앱에는 쓸 수 없습니다. 그런 앱에는 두 방어를 함께 적용합니다.
 
 1. **토큰이 필요 없는 앱** → `automountServiceAccountToken: false` 로 아예 토큰을 빼앗습니다(이번 실습).
-2. **토큰이 필요한 앱** → 전용 ServiceAccount 를 만들고, Lab 6 의 RBAC 로 **딱 필요한 권한만** 부여합니다. 토큰이 탈취돼도 할 수 있는 일이 최소한이 됩니다.
+2. **토큰이 필요한 앱** → 전용 ServiceAccount 를 만들고, Lab 5 의 RBAC 로 **딱 필요한 권한만** 부여합니다. 토큰이 탈취돼도 할 수 있는 일이 최소한이 됩니다.
 
 !!! note "심층 방어(defense in depth)"
     "토큰을 안 준다"와 "줘도 권한이 없다"는 서로 다른 층의 방어입니다. 두 층을 겹쳐 두면 한쪽이 뚫려도 다른 쪽이 버팁니다. 특히 Secret 을 읽을 수 있는 권한은 꼭 필요한 SA 에만 주고, 나머지는 RBAC 로 확실히 막아야 합니다.
@@ -226,4 +226,4 @@ serviceaccount "restricted-sa" deleted
 
 ---
 
-다음: [Lab 8 · NetworkPolicy](08-networkpolicy.md)
+다음: [Lab 7 · NetworkPolicy](07-networkpolicy.md)
