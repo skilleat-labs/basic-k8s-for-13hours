@@ -89,8 +89,8 @@ nav:
       - "Lab 2 · Endpoints 디버깅": day2/02-endpoints-debug.md
       - "Lab 3 · NodePort와 port-forward": day2/03-nodeport-portforward.md
       - "Lab 4 · LoadBalancer": day2/04-loadbalancer.md
-      - "Lab 5 · Ingress 경로 라우팅": day2/05-ingress-routing.md
-      - "Lab 6 · Gateway API와 HTTPRoute": day2/06-gateway-api.md
+      - "Lab 5 · Ingress 실습": day2/05-ingress-routing.md
+      - "Lab 6 · Gateway API 실습": day2/06-gateway-api.md
       - "Lab 7 · 3-tier 앱 배포": day2/07-three-tier-app.md
       - "Lab 8 · ConfigMap": day2/08-configmap.md
       - "Lab 9 · Secret": day2/09-secret.md

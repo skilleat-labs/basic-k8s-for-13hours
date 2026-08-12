@@ -1,152 +1,150 @@
-# Lab 6 · Gateway API와 HTTPRoute
+# Lab 6 · Gateway API 실습
 
-Ingress는 훌륭하지만 두 가지 아쉬움이 있습니다. ① TLS·경로 재작성 같은 고급 기능이 표준이 아니라 **벤더별 어노테이션** 으로 갈리고, ② 인프라 담당과 앱 담당의 **역할이 한 리소스에 뒤섞여** 있습니다. **Gateway API** 는 이를 표준 필드로 정리하고 역할을 분리한 차세대 규격입니다. 이번 실습에서는 Gateway API의 세 리소스(GatewayClass · Gateway · HTTPRoute)로 앞 실습과 똑같은 경로 라우팅(`/`→프론트, `/api`→백엔드)을 구성합니다.
+Ingress를 역할별 리소스(GatewayClass / Gateway / HTTPRoute)로 분리한 차세대 표준 **Gateway API** 를 Envoy Gateway로 구현하고, 가중치 기반 카나리 배포까지 실습합니다.
 
-!!! abstract "이 실습에서 배우는 것"
-    - Gateway API의 **역할 분리** 구조(GatewayClass · Gateway · HTTPRoute)를 이해한다
-    - Gateway API **CRD를 설치** 하고 세 리소스를 직접 만든다
-    - `HTTPRoute` 로 경로 기반 라우팅을 정의한다
-    - Ingress와 Gateway API의 차이를 비교한다
+## 실습 목표
 
-## Gateway API의 역할 분리
+- Gateway API의 3계층 구조(GatewayClass / Gateway / HTTPRoute)를 이해하고 직접 배포한다.
+- 가중치 기반 트래픽 분산(Canary)과 헤더 기반 라우팅을 구현한다.
+- Ingress와 Gateway API의 차이를 실습을 통해 체감한다.
 
-Ingress는 규칙 하나에 모든 걸 담지만, Gateway API는 관심사를 세 리소스로 나눕니다.
+---
 
-| 리소스 | 무엇을 정의하나 | 보통 누가 관리 |
-|---|---|---|
-| **GatewayClass** | 어떤 구현체(컨트롤러)를 쓸지 등록 | 클러스터 관리자 |
-| **Gateway** | 리스너 — 어떤 포트/프로토콜로 받을지 | 인프라팀 |
-| **HTTPRoute** | 경로·호스트 라우팅 규칙 (어느 Service로) | 앱 개발팀 |
+## Gateway API란?
 
-!!! info "Ingress와 같은 원리"
-    Gateway API도 Ingress처럼 **규격(리소스)** 일 뿐이고, 실제 트래픽 처리는 별도의 **컨트롤러** 가 합니다. Ingress에서 Traefik이 그 역할을 했듯, Gateway API에도 컨트롤러가 필요합니다.
+Ingress는 하나의 리소스에 모든 규칙이 담깁니다. 팀이 커지면 여러 팀이 같은 파일을 건드려야 해서 충돌이 생깁니다. Gateway API는 이 문제를 **역할별 리소스 분리**로 해결합니다.
 
-## 사전 조건
+```
+GatewayClass  →  "어떤 종류의 게이트웨이를 쓸 것인가" (클러스터 관리팀)
+Gateway       →  "게이트웨이 인스턴스 설정" (플랫폼 팀)
+HTTPRoute     →  "이 경로는 이 Service로" (개발팀)
+```
 
-- Rancher Desktop의 k3s 클러스터가 실행 중이다
-- 이전 Lab의 Ingress(`app-ingress`)를 삭제했다 (`kubectl delete ingress app-ingress --ignore-not-found`)
+세 리소스가 서로 참조하는 구조여서, 각 팀이 자신의 리소스만 수정하면 됩니다.
 
-## 1. Gateway API CRD 설치
+---
 
-Gateway API는 쿠버네티스 기본 리소스가 아니라 **CRD(사용자 정의 리소스)** 로 추가합니다. 표준(standard) 채널을 설치합니다.
+## Helm이란?
+
+**Helm**은 Kubernetes의 패키지 매니저입니다. macOS의 `brew`, Ubuntu의 `apt`처럼 복잡한 애플리케이션을 명령어 하나로 설치·업그레이드·삭제할 수 있게 해줍니다.
+
+Kubernetes에 어떤 애플리케이션을 설치하려면 Deployment, Service, ConfigMap, RBAC 등 수십 개의 YAML을 직접 작성해야 합니다. Helm은 이 YAML 묶음을 **Chart**라는 단위로 패키징해서 배포합니다.
+
+```
+helm install <릴리즈 이름> <차트 경로 또는 저장소>
+helm uninstall <릴리즈 이름>
+helm upgrade <릴리즈 이름> <차트>
+```
+
+이번 실습에서는 Envoy Gateway를 Helm Chart로 설치합니다.
+
+---
+
+### 1) Envoy Gateway 설치
+
+!!! note "helm이 없다면 먼저 설치합니다"
+
+    === "macOS / Linux"
+
+        ```bash
+        brew install helm
+        ```
+
+    === "Windows (PowerShell)"
+
+        ```powershell
+        winget install Helm.Helm
+        ```
+
+**Controller + CRD 설치 (Helm)**
+
+=== "macOS / Linux"
+
+    ```bash
+    helm install eg oci://docker.io/envoyproxy/gateway-helm \
+      --version v1.1.0 \
+      -n envoy-gateway-system \
+      --create-namespace
+    ```
+
+=== "Windows (PowerShell)"
+
+    ```powershell
+    helm install eg oci://docker.io/envoyproxy/gateway-helm `
+      --version v1.1.0 `
+      -n envoy-gateway-system `
+      --create-namespace
+    ```
+
+Pod가 Running이 될 때까지 기다립니다. (1~2분 소요)
 
 ```bash
-kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.2.1/standard-install.yaml
+kubectl get pods -n envoy-gateway-system
 ```
 
-```text
-customresourcedefinition.apiextensions.k8s.io/gatewayclasses.gateway.networking.k8s.io created
-customresourcedefinition.apiextensions.k8s.io/gateways.gateway.networking.k8s.io created
-customresourcedefinition.apiextensions.k8s.io/httproutes.gateway.networking.k8s.io created
-...
+**GatewayClass 생성**
+
+Helm 차트는 Controller와 CRD만 설치합니다. GatewayClass 오브젝트는 별도로 생성해야 합니다. `gatewayclass.yaml` 파일을 만듭니다.
+
+```yaml
+apiVersion: gateway.networking.k8s.io/v1
+kind: GatewayClass
+metadata:
+  name: eg
+spec:
+  controllerName: gateway.envoyproxy.io/gatewayclass-controller
 ```
 
-이제 클러스터가 `gateway`, `httproute` 같은 리소스를 이해합니다.
+```bash
+kubectl apply -f gatewayclass.yaml
+```
+
+확인:
 
 ```bash
 kubectl get gatewayclass
 ```
 
-```text
-No resources found
+```
+NAME   CONTROLLER                                             ACCEPTED
+eg     gateway.envoyproxy.io/gatewayclass-controller          True
 ```
 
-아직 GatewayClass가 없습니다. **CRD는 규격만 추가했을 뿐, 이를 처리할 컨트롤러가 없기 때문** 입니다. 다음 단계에서 컨트롤러를 설치합니다.
+`ACCEPTED: True`가 되면 다음 단계로 진행합니다.
 
-## 2. Gateway 컨트롤러 설치
+---
 
-!!! warning "Rancher Desktop 기본 Traefik은 Gateway API가 꺼져 있다"
-    k3s에 내장된 Traefik은 Ingress는 처리하지만 Gateway API 프로바이더가 기본 비활성입니다. 그래서 여기서는 대표 구현체인 **NGINX Gateway Fabric(NGF)** 을 설치해 확인합니다.
+### 2) 테스트용 앱 배포
 
-!!! note "버전·URL은 공식 릴리스 기준으로"
-    아래 명령의 버전(`v1.4.0`)은 예시입니다. 설치가 안 되면 [NGF 릴리스 페이지](https://github.com/nginx/nginx-gateway-fabric/releases)에서 **최신 버전 번호로 바꿔** 실행하세요. 이 실습의 **핵심(3~5단계의 리소스 생성·검사)은 컨트롤러 없이도 동작** 하며, 컨트롤러는 6단계의 실제 트래픽 확인에만 필요합니다.
-
-NGF의 CRD와 컨트롤러를 설치합니다.
+Gateway API 실습용 앱을 `gateway-ns` 네임스페이스에 배포합니다.
 
 ```bash
-kubectl apply -f https://raw.githubusercontent.com/nginx/nginx-gateway-fabric/v1.4.0/deploy/crds.yaml
-kubectl apply -f https://raw.githubusercontent.com/nginx/nginx-gateway-fabric/v1.4.0/deploy/default/deploy.yaml
+kubectl create namespace gateway-ns
 ```
 
-컨트롤러 Pod가 뜨는지 확인합니다.
-
-```bash
-kubectl get pods -n nginx-gateway
-```
-
-```text
-NAME                             READY   STATUS    RESTARTS   AGE
-nginx-gateway-6b8f9c7d84-2xk9q   2/2     Running   0          30s
-```
-
-이제 GatewayClass가 등록됩니다.
-
-```bash
-kubectl get gatewayclass
-```
-
-```text
-NAME    CONTROLLER                                   ACCEPTED   AGE
-nginx   gateway.nginx.org/nginx-gateway-controller   True       20s
-```
-
-`ACCEPTED=True` 면 컨트롤러가 이 GatewayClass를 받아들였다는 뜻입니다.
-
-## 3. 앱 배포 (프론트엔드 · 백엔드)
-
-Ingress 실습과 동일한 두 앱을 배포합니다. 아래를 `apps.yaml` 로 저장하세요.
+`gw-apps.yaml` 파일을 만듭니다.
 
 ```yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: frontend
+  name: blue-app
+  namespace: gateway-ns
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: frontend
+      app: blue-app
   template:
     metadata:
       labels:
-        app: frontend
+        app: blue-app
     spec:
       containers:
-        - name: nginx
-          image: nginx
-          ports:
-            - containerPort: 80
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: frontend
-spec:
-  selector:
-    app: frontend
-  ports:
-    - port: 80
-      targetPort: 80
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: backend
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: backend
-  template:
-    metadata:
-      labels:
-        app: backend
-    spec:
-      containers:
-        - name: http-echo
-          image: hashicorp/http-echo
+        - name: app
+          image: hashicorp/http-echo:latest
           args:
-            - "-text=hello from backend"
+            - "-text=Blue App v1"
             - "-listen=:5678"
           ports:
             - containerPort: 5678
@@ -154,192 +152,367 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: backend
+  name: blue-svc
+  namespace: gateway-ns
 spec:
   selector:
-    app: backend
+    app: blue-app
   ports:
-    - port: 5678
+    - port: 80
+      targetPort: 5678
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: green-app
+  namespace: gateway-ns
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: green-app
+  template:
+    metadata:
+      labels:
+        app: green-app
+    spec:
+      containers:
+        - name: app
+          image: hashicorp/http-echo:latest
+          args:
+            - "-text=Green App v2"
+            - "-listen=:5678"
+          ports:
+            - containerPort: 5678
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: green-svc
+  namespace: gateway-ns
+spec:
+  selector:
+    app: green-app
+  ports:
+    - port: 80
       targetPort: 5678
 ```
 
 ```bash
-kubectl apply -f apps.yaml
+kubectl apply -f gw-apps.yaml
+kubectl get pods -n gateway-ns
+kubectl get svc -n gateway-ns
 ```
 
-## 4. Gateway 만들기 (인프라팀 역할)
+---
 
-80 포트로 HTTP를 받는 리스너를 정의합니다. 아래를 `gateway.yaml` 로 저장하세요.
+### 3) Gateway 생성
+
+`Gateway`는 실제 리스닝 포트와 프로토콜을 정의합니다. 플랫폼 팀이 관리하는 리소스입니다.
+
+`gateway.yaml` 파일을 만듭니다.
 
 ```yaml
 apiVersion: gateway.networking.k8s.io/v1
 kind: Gateway
 metadata:
-  name: web-gateway
+  name: lab-gateway
+  namespace: gateway-ns
 spec:
-  gatewayClassName: nginx
+  gatewayClassName: eg          # GatewayClass 이름 참조
   listeners:
     - name: http
       protocol: HTTP
       port: 80
       allowedRoutes:
         namespaces:
-          from: Same
+          from: Same            # 같은 네임스페이스의 HTTPRoute만 허용
 ```
 
 ```bash
 kubectl apply -f gateway.yaml
-kubectl get gateway
+kubectl get gateway -n gateway-ns
 ```
 
-```text
-NAME          CLASS   ADDRESS       PROGRAMMED   AGE
-web-gateway   nginx   10.43.x.x     True         15s
+```
+NAME          CLASS   ADDRESS        PROGRAMMED   AGE
+lab-gateway   eg      <IP>           True         30s
 ```
 
-`PROGRAMMED=True` 면 컨트롤러가 이 Gateway에 맞춰 실제 프록시를 구성했다는 뜻입니다.
+`PROGRAMMED: True`가 되면 Gateway가 정상적으로 준비된 것입니다.
 
-## 5. HTTPRoute 만들기 (앱팀 역할)
+```bash
+kubectl describe gateway lab-gateway -n gateway-ns
+```
 
-이제 경로 라우팅 규칙입니다. `/` 는 frontend, `/api` 는 backend로 보냅니다. 아래를 `httproute.yaml` 로 저장하세요.
+확인 항목:
+
+- `Listeners`: 포트·프로토콜 설정
+- `Addresses`: 할당된 IP
+- `Conditions`: Ready 여부
+
+!!! warning "PROGRAMMED: False가 지속되는 경우"
+    이전 실습(Lab 5 · Ingress)에서 Nginx Ingress Controller를 삭제하지 않았으면 포트 80이 충돌해 Gateway에 주소가 할당되지 않습니다.
+
+    ```bash
+    kubectl delete -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.10.1/deploy/static/provider/cloud/deploy.yaml
+    ```
+
+    삭제 후 1분 정도 기다렸다가 `kubectl get gateway -n gateway-ns`를 다시 확인합니다.
+
+---
+
+### 4) HTTPRoute 생성 — 경로 기반 라우팅
+
+`HTTPRoute`는 "어떤 경로를 어느 Service로 보낼 것인가"를 정의합니다. 개발팀이 직접 관리하는 리소스입니다.
+
+`httproute-path.yaml` 파일을 만듭니다.
 
 ```yaml
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
-  name: app-route
+  name: lab-route
+  namespace: gateway-ns
 spec:
   parentRefs:
-    - name: web-gateway
+    - name: lab-gateway         # 어느 Gateway에 붙을지 참조
+  hostnames:
+    - "gw.lab.local"
   rules:
     - matches:
         - path:
             type: PathPrefix
-            value: /api
+            value: /blue
       backendRefs:
-        - name: backend
-          port: 5678
+        - name: blue-svc
+          port: 80
     - matches:
         - path:
             type: PathPrefix
-            value: /
+            value: /green
       backendRefs:
-        - name: frontend
+        - name: green-svc
           port: 80
 ```
 
 ```bash
-kubectl apply -f httproute.yaml
-kubectl describe httproute app-route
+kubectl apply -f httproute-path.yaml
+kubectl get httproute -n gateway-ns
+kubectl describe httproute lab-route -n gateway-ns
 ```
 
-`parentRefs` 로 이 규칙이 어느 Gateway에 붙는지 지정하고, `backendRefs` 로 어느 Service로 보낼지 정합니다. Ingress와 달리 **리스너(Gateway)와 라우팅 규칙(HTTPRoute)이 분리** 되어 있는 점에 주목하세요.
+`describe` 출력에서 확인:
 
-## 6. 경로별 접근 확인
+- `ParentRefs`: 연결된 Gateway
+- `Rules`: path → backendRefs Service 매핑
 
-컨트롤러 서비스로 접근합니다. 서비스 이름은 환경에 따라 다를 수 있으니 먼저 확인합니다.
+---
 
-```bash
-kubectl get svc -n nginx-gateway
-```
+### 5) /etc/hosts 등록 및 접속 확인
 
-가장 확실한 접근 방법은 `port-forward` 입니다(서비스 타입과 무관하게 동작). 컨트롤러 서비스를 로컬 8080 포트로 연결합니다.
-
-```bash
-kubectl port-forward -n nginx-gateway svc/nginx-gateway 8080:80
-```
-
-!!! note
-    `port-forward` 는 터미널을 점유합니다. **새 터미널** 을 열어 아래 접속 테스트를 실행하세요.
-
-`/` — 프론트엔드(nginx):
-
-=== "Windows (PowerShell)"
-
-    ```powershell
-    curl.exe http://localhost:8080/
-    ```
+`/etc/hosts`에 등록합니다.
 
 === "macOS / Linux"
 
     ```bash
-    curl http://localhost:8080/
+    sudo sh -c 'echo "127.0.0.1 gw.lab.local" >> /etc/hosts'
     ```
 
-```text
-<!DOCTYPE html>
-<html>
-<head>
-<title>Welcome to nginx!</title>
-...
-```
-
-`/api` — 백엔드(http-echo):
-
-=== "Windows (PowerShell)"
+=== "Windows (PowerShell — 관리자 권한)"
 
     ```powershell
-    curl.exe http://localhost:8080/api
+    Add-Content -Path "C:\Windows\System32\drivers\etc\hosts" -Value "127.0.0.1 gw.lab.local"
     ```
+
+접속 확인:
 
 === "macOS / Linux"
 
     ```bash
-    curl http://localhost:8080/api
+    curl http://gw.lab.local/blue
+    # Blue App v1
+
+    curl http://gw.lab.local/green
+    # Green App v2
     ```
 
-```text
-hello from backend
+=== "Windows (PowerShell)"
+
+    ```powershell
+    Invoke-WebRequest -Uri http://gw.lab.local/blue -UseBasicParsing | Select-Object -ExpandProperty Content
+    Invoke-WebRequest -Uri http://gw.lab.local/green -UseBasicParsing | Select-Object -ExpandProperty Content
+    ```
+
+---
+
+### 6) HTTPRoute — 가중치 기반 트래픽 분산 (Canary)
+
+Gateway API의 강력한 기능 중 하나입니다. Ingress에서는 annotation으로 억지로 구현하던 것을 `weight` 필드 하나로 표준화해서 지원합니다.
+
+`httproute-canary.yaml` 파일을 만듭니다.
+
+```yaml
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: canary-route
+  namespace: gateway-ns
+spec:
+  parentRefs:
+    - name: lab-gateway
+  hostnames:
+    - "gw.lab.local"
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /app
+      backendRefs:
+        - name: blue-svc    # 기존 버전 (v1)
+          port: 80
+          weight: 80        # 트래픽의 80%
+        - name: green-svc   # 신규 버전 (v2)
+          port: 80
+          weight: 20        # 트래픽의 20%
 ```
 
-Ingress 때와 똑같은 경로 라우팅을, 이번엔 **역할이 분리된 Gateway API** 로 구현했습니다.
+```bash
+kubectl apply -f httproute-canary.yaml
+```
 
-## Ingress vs Gateway API
+실제로 분산되는지 확인합니다. 10번 요청해서 비율을 봅니다.
 
-| | Ingress | Gateway API |
-|---|---|---|
-| 역할 분리 | 규칙 하나에 혼재 | GatewayClass / Gateway / HTTPRoute로 분리 |
-| 고급 기능 | 벤더 어노테이션 의존 | 표준 필드(헤더·가중치·트래픽 분할 등) |
-| 프로토콜 | 주로 HTTP/HTTPS | HTTP·TCP·gRPC 등 확장(TCPRoute·GRPCRoute) |
-| 이식성 | 컨트롤러 바꾸면 어노테이션 재작성 | 표준이라 구현체 교체가 쉬움 |
+=== "macOS / Linux"
 
-!!! info "언제 무엇을 쓰나"
-    지금도 많은 클러스터가 Ingress를 쓰지만, 쿠버네티스는 Gateway API를 차세대 표준으로 밀고 있습니다. 새 프로젝트라면 Gateway API를, 기존 자산은 Ingress를 유지하며 점진적으로 옮기는 방식이 일반적입니다.
+    ```bash
+    for i in $(seq 1 10); do curl -s http://gw.lab.local/app; echo; done
+    ```
 
-## 검증
+=== "Windows (PowerShell)"
 
-- `kubectl get gatewayclass` → `nginx`, `ACCEPTED=True`
-- `kubectl get gateway` → `web-gateway`, `PROGRAMMED=True`
-- `http://localhost:8080/` → nginx 환영 페이지, `http://localhost:8080/api` → `hello from backend`
+    ```powershell
+    1..10 | ForEach-Object {
+        Invoke-WebRequest -Uri http://gw.lab.local/app -UseBasicParsing | Select-Object -ExpandProperty Content
+    }
+    ```
 
-## 직접 해 보기
+```
+Blue App v1
+Blue App v1
+Green App v2
+Blue App v1
+Blue App v1
+Blue App v1
+Blue App v1
+Green App v2
+Blue App v1
+Blue App v1
+```
 
-!!! question "도전 과제"
-    1. `kubectl get httproute app-route -o yaml` 로 `status` 를 확인해 규칙이 Gateway에 정상 연결(Accepted)됐는지 보세요.
-    2. HTTPRoute에 규칙을 하나 더 추가해 `/health` 경로를 backend로 보내 보세요.
-    3. Gateway API의 `TCPRoute`, `GRPCRoute` 가 무엇인지 찾아보고, Ingress로는 왜 이걸 표준으로 다루기 어려운지 생각해 보세요.
+약 8:2 비율로 응답이 분산되는 것을 확인합니다.
 
-## 자주 만나는 오류
+> **실무 활용**: 신버전 배포 시 처음에는 `weight: 5`(5%)만 신버전으로 보내다가 문제없으면 `weight: 50` → `weight: 100`으로 점진적으로 올립니다. Ingress에서는 이 작업이 Controller별로 구현 방식이 달랐지만, Gateway API에서는 표준 YAML 필드로 통일됩니다.
 
-!!! failure "자주 만나는 오류"
-    - **CRD 설치 URL이 404** — Gateway API 버전이 바뀌었습니다. [릴리스 페이지](https://github.com/kubernetes-sigs/gateway-api/releases)에서 최신 `standard-install.yaml` URL로 교체하세요.
-    - **`kubectl get gatewayclass` 가 계속 비어 있음** — 컨트롤러(NGF)가 설치·실행 중인지 `kubectl get pods -n nginx-gateway` 로 확인하세요. NGF 버전이 안 맞으면 릴리스 페이지의 최신 명령을 쓰세요.
-    - **`Gateway` 의 `PROGRAMMED` 가 `False`** — 컨트롤러가 아직 준비 중이거나 리스너 설정 오류입니다. `kubectl describe gateway web-gateway` 의 이벤트를 확인하세요.
-    - **`port-forward` 연결 거부** — 서비스 이름이 다를 수 있습니다. `kubectl get svc -n nginx-gateway` 로 실제 이름을 확인해 명령을 맞추세요.
+---
 
-## 정리
+### 7) 정리
+
+**HTTPRoute / Gateway / 앱 삭제**
 
 ```bash
-kubectl delete -f httproute.yaml
+kubectl delete -f httproute-canary.yaml
+kubectl delete -f httproute-path.yaml
 kubectl delete -f gateway.yaml
-kubectl delete -f apps.yaml
+kubectl delete -f gw-apps.yaml
+kubectl delete namespace gateway-ns
 ```
 
-!!! tip "컨트롤러·CRD 정리(선택)"
-    NGF 컨트롤러와 Gateway API CRD까지 완전히 지우려면(다음 실습에 불필요하므로 지워도 됩니다):
+**Envoy Gateway (Helm) 삭제**
+
+=== "macOS / Linux"
+
     ```bash
-    kubectl delete -f https://raw.githubusercontent.com/nginx/nginx-gateway-fabric/v1.4.0/deploy/default/deploy.yaml
+    helm uninstall eg -n envoy-gateway-system
     ```
+
+=== "Windows (PowerShell)"
+
+    ```powershell
+    helm uninstall eg -n envoy-gateway-system
+    ```
+
+**Gateway API CRD 삭제**
+
+Helm uninstall 후에도 CRD는 클러스터에 남습니다. 완전히 제거하려면 아래 명령어를 실행합니다.
+
+=== "macOS / Linux"
+
+    ```bash
+    kubectl get crd | grep gateway.networking.k8s.io | awk '{print $1}' | xargs kubectl delete crd
+
+    # 확인
+    kubectl get crd | grep gateway
+    ```
+
+=== "Windows (PowerShell)"
+
+    ```powershell
+    kubectl get crd -o name | Select-String "gateway.networking.k8s.io" | ForEach-Object {
+        kubectl delete $_.ToString().Trim()
+    }
+
+    # 확인
+    kubectl get crd | Select-String "gateway"
+    ```
+
+> **왜 CRD를 따로 지워야 하나?**
+> Helm은 기본적으로 CRD를 **설치는 하지만 삭제는 하지 않습니다.** CRD를 자동 삭제하면 데이터 손실 위험이 있기 때문입니다. 다음 실습에서 버전 충돌이 생길 수 있으니 명시적으로 삭제합니다.
+
+**`/etc/hosts` 원복**
+
+=== "macOS / Linux"
+
+    ```bash
+    sudo sed -i '' '/gw\.lab\.local/d' /etc/hosts
+
+    # 확인
+    cat /etc/hosts | grep gw.lab.local
+    ```
+
+=== "Windows (PowerShell — 관리자 권한)"
+
+    ```powershell
+    $hosts = "C:\Windows\System32\drivers\etc\hosts"
+    (Get-Content $hosts) | Where-Object { $_ -notmatch "gw\.lab\.local" } | Set-Content $hosts
+
+    # 확인
+    Get-Content $hosts | Select-String "gw.lab.local"
+    ```
+
+---
+
+## Ingress vs Gateway API 비교
+
+| 항목 | Ingress | Gateway API |
+|---|---|---|
+| 라우팅 단위 | 단일 리소스 | GatewayClass / Gateway / HTTPRoute 분리 |
+| 팀 역할 분리 | 불가 | 가능 (RBAC 연동) |
+| 가중치 트래픽 분산 | Controller별 annotation (비표준) | `weight` 필드 (표준) |
+| 헤더 기반 라우팅 | Controller별 annotation | `headers` 필드 (표준) |
+| 도입 복잡도 | 낮음 | 상대적으로 높음 |
+| 권장 상황 | 소규모·단순 라우팅 | 복잡한 트래픽 제어·대규모 팀 |
+
+---
+
+## 트러블슈팅
+
+| 증상 | 확인 사항 |
+|---|---|
+| `curl: (6) Could not resolve host` | `/etc/hosts`에 도메인 등록 확인 |
+| Gateway `PROGRAMMED: False` | Nginx Ingress Controller가 포트 80을 점유 중 — `kubectl delete -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.10.1/deploy/static/provider/cloud/deploy.yaml` 후 재확인 |
+| HTTPRoute 적용 안됨 | `parentRefs.name`이 Gateway 이름과 일치하는지 확인 |
+| Canary 비율이 맞지 않음 | `weight` 합계가 100일 필요는 없음, 비율로만 계산됨 |
 
 ---
 
