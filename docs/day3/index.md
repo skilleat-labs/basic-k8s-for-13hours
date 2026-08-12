@@ -6,8 +6,8 @@
 
 | # | 실습 | 무엇을 배우나 |
 |---|---|---|
-| 1 | [데이터 소실 재현](01-data-loss.md) | 볼륨 없는 Pod 삭제 → 데이터 소실 체감 |
-| 2 | [PV·PVC·StorageClass](02-pv-pvc.md) | 영속 볼륨 연결로 데이터 보존 |
+| 1 | [볼륨 실습 — emptyDir](01-data-loss.md) | emptyDir 임시 볼륨·컨테이너 간 공유·Pod 삭제 시 소실 |
+| 2 | [볼륨 실습 — PV / PVC](02-pv-pvc.md) | PV/PVC·정적·동적 프로비저닝·데이터 영속성 |
 | 3 | [securityContext 하드닝](03-securitycontext.md) | root 컨테이너 위험 재현 → 방어 설정 |
 | 4 | [Pod Security Admission](04-pod-security-admission.md) | 네임스페이스 단위로 위반 Pod 거부 |
 | 5 | [RBAC 최소 권한](05-rbac.md) | ServiceAccount·Role·RoleBinding, `auth can-i` |
@@ -17,4 +17,4 @@
 !!! warning "보안 실습의 색 규칙"
     이 과정에서는 **공격·위협은 빨강**, **방어·차단은 파랑** 으로 구분합니다. 실습 문서에서도 공격 재현과 방어 적용 단계를 구분해 표시합니다.
 
-시작: **[Lab 1 · 데이터 소실 재현](01-data-loss.md)**
+시작: **[Lab 1 · 볼륨 실습 — emptyDir](01-data-loss.md)**

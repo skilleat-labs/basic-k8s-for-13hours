@@ -1,285 +1,319 @@
-# Lab 2 · PV·PVC·StorageClass
+# Lab 2 · 볼륨 실습 — PV / PVC
 
-앞 실습에서 Pod 를 삭제하자 데이터가 사라졌습니다. 이번에는 **영속 볼륨(PersistentVolume)** 을 MySQL 에 붙여, Pod 가 죽고 새로 태어나도 데이터가 그대로 남는 것을 확인합니다. 핵심 도구는 개발자가 "이만큼의 저장소를 주세요"라고 요청하는 **PVC(PersistentVolumeClaim)** 와, 그 요청을 받아 실제 볼륨을 자동으로 만들어 주는 **StorageClass** 입니다.
+Pod가 사라져도 데이터가 남도록 **PersistentVolume(PV)·PersistentVolumeClaim(PVC)** 를 붙입니다. 정적·동적 프로비저닝을 모두 해 보고, Pod를 지웠다 다시 만들어도 데이터가 유지되는 것을 확인합니다.
 
-!!! abstract "이 실습에서 배우는 것"
-    - PV·PVC·StorageClass 세 가지가 각각 무슨 역할을 하는지
-    - PVC 로 저장소를 **요청**하면 StorageClass 가 PV 를 **동적 프로비저닝**하는 흐름
-    - MySQL 데이터 디렉터리(`/var/lib/mysql`)에 볼륨을 마운트하는 법
-    - Pod 를 삭제해도 데이터가 유지되는 것을 직접 확인
-    - k3s 의 기본 StorageClass `local-path`
+## 실습 목표
 
-## 사전 조건
+- PersistentVolume(PV)과 PersistentVolumeClaim(PVC)을 생성하고 바인딩한다.
+- Pod에서 PVC를 볼륨으로 마운트하여 데이터를 영속적으로 저장한다.
+- Pod를 삭제하고 재생성해도 데이터가 유지되는 것을 확인한다.
 
-- Lab 1 을 마쳤고, `mysql-novolume` 리소스는 정리된 상태여야 합니다.
-- 클러스터에 기본 StorageClass 가 있는지 확인합니다.
+---
+
+## 1) StorageClass 확인
+
+로컬 클러스터에서 기본 제공되는 StorageClass를 확인합니다.
 
 ```bash
 kubectl get storageclass
 ```
 
-```text
-NAME                   PROVISIONER             RECLAIMPOLICY   VOLUMEBINDINGMODE      ALLOWVOLUMEEXPANSION   AGE
-local-path (default)   rancher.io/local-path   Delete          WaitForFirstConsumer   false                  12d
+환경에 따라 출력이 다릅니다.
+
+=== "Docker Desktop"
+
+    ```
+    NAME                 PROVISIONER          RECLAIMPOLICY   VOLUMEBINDINGMODE   AGE
+    hostpath (default)   docker.io/hostpath   Delete          Immediate           10m
+    ```
+
+=== "Rancher Desktop (k3s)"
+
+    ```
+    NAME                   PROVISIONER             RECLAIMPOLICY   VOLUMEBINDINGMODE      ALLOWVOLUMEEXPANSION   AGE
+    local-path (default)   rancher.io/local-path   Delete          WaitForFirstConsumer   false                  63d
+    ```
+
+기본 StorageClass(`(default)` 표시)가 있으면 동적 프로비저닝을 사용할 수 있습니다.
+
+---
+
+## 2) 방법 A — 정적 프로비저닝 (PV + PVC 수동 생성)
+
+### PV 생성
+
+`pv-local.yaml` 파일을 만듭니다.
+
+```yaml
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: local-pv
+spec:
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: manual
+  hostPath:
+    path: /tmp/k8s-lab-data    # 노드의 실제 경로 (Rancher Desktop은 Lima VM 내부 경로)
 ```
 
-!!! note "`local-path` 가 기본 StorageClass"
-    이름 옆의 `(default)` 표시가 핵심입니다. PVC 에서 `storageClassName` 을 생략하면 이 기본 StorageClass 가 자동으로 쓰입니다. k3s 의 `local-path` 프로비저너는 노드의 로컬 디스크에 디렉터리를 만들어 볼륨으로 제공합니다. `VOLUMEBINDINGMODE` 가 `WaitForFirstConsumer` 라서, PVC 를 만들어도 **실제로 쓰는 Pod 가 뜨기 전까지는 PV 가 생성되지 않습니다.**
+```bash
+kubectl apply -f pv-local.yaml
+kubectl get pv
+```
 
-## 1. PVC 만들기
+> **Rancher Desktop 사용자**: `/tmp/k8s-lab-data`는 Mac 로컬이 아닌 **Lima VM 내부 경로**입니다. Finder에서는 확인할 수 없습니다.
 
-저장소를 요청하는 PVC 매니페스트를 작성합니다. `storageClassName` 을 생략했으므로 기본 `local-path` 가 사용됩니다.
+출력:
 
-`mysql-pvc.yaml`
+```
+NAME       CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS      CLAIM   STORAGECLASS
+local-pv   1Gi        RWO            Retain           Available           manual
+```
+
+> Kubernetes 1.29 이상에서는 `VOLUMEATTRIBUTESCLASS`, `REASON`, `AGE` 컬럼이 추가로 표시될 수 있습니다. 주요 값(STATUS: Available, STORAGECLASS: manual)만 확인하면 됩니다.
+
+### PVC 생성
+
+`pvc-local.yaml` 파일을 만듭니다.
 
 ```yaml
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: mysql-pvc
+  name: local-pvc
 spec:
   accessModes:
     - ReadWriteOnce
   resources:
     requests:
-      storage: 1Gi
+      storage: 500Mi
+  storageClassName: manual
 ```
-
-- `accessModes: ReadWriteOnce` (RWO): 하나의 노드에서 읽기·쓰기로 마운트합니다. 단일 노드 클러스터와 대부분의 데이터베이스에 적합합니다.
-- `resources.requests.storage: 1Gi`: 1기가바이트를 요청합니다.
-
-적용합니다.
 
 ```bash
-kubectl apply -f mysql-pvc.yaml
-```
-
-```text
-persistentvolumeclaim/mysql-pvc created
-```
-
-상태를 봅니다.
-
-```bash
+kubectl apply -f pvc-local.yaml
 kubectl get pvc
+kubectl get pv    # STATUS가 Bound로 변경됨
 ```
 
-```text
-NAME        STATUS    VOLUME   CAPACITY   ACCESS MODES   STORAGECLASS   AGE
-mysql-pvc   Pending                                      local-path     8s
+출력:
+
+```
+NAME        STATUS   VOLUME     CAPACITY   ACCESS MODES   STORAGECLASS
+local-pvc   Bound    local-pv   1Gi        RWO            manual
 ```
 
-!!! info "왜 `Pending` 인가요?"
-    아직 이 PVC 를 사용하는 Pod 가 없기 때문입니다. `local-path` 는 `WaitForFirstConsumer` 모드라, **실제로 볼륨을 쓸 Pod 가 스케줄되는 순간** PV 를 만들어 바인딩합니다. 다음 단계에서 MySQL 을 붙이면 `Bound` 로 바뀝니다.
+> Kubernetes 1.29 이상에서는 `VOLUMEATTRIBUTESCLASS`, `AGE` 컬럼이 추가로 표시될 수 있습니다. `STATUS: Bound`와 `VOLUME: local-pv` 값만 확인하면 됩니다.
 
-## 2. PVC 를 붙인 MySQL 배포하기
+---
 
-이제 MySQL Deployment 에 볼륨을 마운트합니다. Lab 1 과의 차이는 `volumeMounts` 와 `volumes` 두 블록이 추가된 것뿐입니다.
+## 3) 방법 B — 동적 프로비저닝 (StorageClass 자동 PV 생성)
 
-`mysql-pv.yaml`
+기본 StorageClass가 있는 경우 PV 없이 PVC만 생성합니다.
+
+`pvc-dynamic.yaml` 파일을 만듭니다.
+
+```yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: dynamic-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 500Mi
+  # storageClassName 생략 시 기본 StorageClass 사용
+```
+
+```bash
+kubectl apply -f pvc-dynamic.yaml
+kubectl get pvc dynamic-pvc
+kubectl get pv    # PV가 자동 생성됨
+```
+
+!!! warning "Rancher Desktop — PVC가 Pending 상태로 머무는 경우"
+    `local-path` StorageClass는 `WaitForFirstConsumer` 모드입니다.
+    **PVC만 생성한 시점에서는 PV가 만들어지지 않으며, PVC 상태가 `Pending`으로 유지되는 것이 정상입니다.**
+    다음 단계(4)에서 Pod를 배포하면 그때 비로소 PV가 생성되고 PVC가 `Bound`로 바뀝니다.
+
+---
+
+## 4) PVC를 사용하는 Pod 배포
+
+`pod-with-pvc.yaml` 파일을 만듭니다.
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: data-pod
+spec:
+  containers:
+    - name: app
+      image: busybox:1.36-musl
+      command: ["sh", "-c", "echo 'Hello K8s Storage!' > /data/hello.txt && cat /data/hello.txt && sleep 3600"]
+      volumeMounts:
+        - name: data-storage
+          mountPath: /data
+  volumes:
+    - name: data-storage
+      persistentVolumeClaim:
+        claimName: local-pvc    # 또는 dynamic-pvc
+  restartPolicy: Never
+```
+
+```bash
+kubectl apply -f pod-with-pvc.yaml
+kubectl logs data-pod
+```
+
+```
+Hello K8s Storage!
+```
+
+!!! note "Rancher Desktop — 이 단계에서 dynamic-pvc는 아직 Pending"
+    이 Pod는 `local-pvc`를 사용합니다. `dynamic-pvc`는 해당 PVC를 사용하는 Pod가 실제로 배포되어야 PV가 생성되고 `Bound`로 바뀝니다.
+
+    `dynamic-pvc`가 `Pending` 상태로 유지되는 것은 **정상**입니다. 다음 6단계에서 MySQL Deployment를 배포하면 그때 `Bound`로 전환됩니다.
+
+    ```bash
+    kubectl get pvc dynamic-pvc   # Pending — 정상, 아직 사용하는 Pod가 없음
+    ```
+
+---
+
+## 5) 데이터 영속성 확인
+
+Pod를 삭제하고 재생성해도 데이터가 유지되는지 확인합니다.
+
+### Pod 삭제
+
+```bash
+kubectl delete pod data-pod
+```
+
+### 새 Pod에서 같은 PVC 재사용
+
+`pod-with-pvc-2.yaml` 파일을 만듭니다.
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: data-pod-2
+spec:
+  containers:
+    - name: app
+      image: busybox:1.36-musl
+      command: ["sh", "-c", "cat /data/hello.txt && sleep 3600"]
+      volumeMounts:
+        - name: data-storage
+          mountPath: /data
+  volumes:
+    - name: data-storage
+      persistentVolumeClaim:
+        claimName: local-pvc
+  restartPolicy: Never
+```
+
+```bash
+kubectl apply -f pod-with-pvc-2.yaml
+kubectl logs data-pod-2
+```
+
+```
+Hello K8s Storage!
+```
+
+> **포인트**: Pod가 삭제되고 새 Pod가 생성되어도 `/data/hello.txt` 파일이 그대로 남아있습니다.
+
+---
+
+## 6) PVC를 Deployment에 사용
+
+실제로는 Deployment에서 PVC를 사용합니다.
+
+MySQL은 `/var/lib/mysql`이 **빈 디렉토리**여야 초기화됩니다. 앞 단계에서 데이터가 기록된 `local-pvc`를 재사용하면 실패하므로, 동적 프로비저닝으로 새 PVC를 사용합니다.
+
+`deploy-with-pvc.yaml` 파일을 만듭니다.
 
 ```yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: mysql-pv
+  name: mysql-with-storage
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: mysql-pv
+      app: mysql-storage
   template:
     metadata:
       labels:
-        app: mysql-pv
+        app: mysql-storage
     spec:
       containers:
         - name: mysql
           image: mysql:8.0
           env:
             - name: MYSQL_ROOT_PASSWORD
-              value: "rootpw123"
-          ports:
-            - containerPort: 3306
+              value: testpassword
           volumeMounts:
             - name: mysql-data
               mountPath: /var/lib/mysql
       volumes:
         - name: mysql-data
           persistentVolumeClaim:
-            claimName: mysql-pvc
+            claimName: dynamic-pvc   # 앞 단계에서 생성한 빈 PVC 사용
 ```
-
-- `volumeMounts.mountPath: /var/lib/mysql`: MySQL 이 실제 데이터를 저장하는 디렉터리에 볼륨을 연결합니다.
-- `volumes.persistentVolumeClaim.claimName: mysql-pvc`: 앞에서 만든 PVC 를 이 볼륨의 실체로 지정합니다.
-
-적용합니다.
 
 ```bash
-kubectl apply -f mysql-pv.yaml
+kubectl apply -f deploy-with-pvc.yaml
+kubectl get pods -l app=mysql-storage
 ```
 
-```text
-deployment.apps/mysql-pv created
-```
+---
 
-Pod 가 뜬 뒤 PVC 상태를 다시 봅니다.
+## 접근 모드 비교
+
+| 모드 | 설명 | 용도 |
+|---|---|---|
+| `ReadWriteOnce (RWO)` | 하나의 노드에서만 읽기/쓰기 | 데이터베이스 |
+| `ReadOnlyMany (ROX)` | 여러 노드에서 읽기 전용 | 정적 파일 공유 |
+| `ReadWriteMany (RWX)` | 여러 노드에서 읽기/쓰기 | NFS, 공유 스토리지 |
+
+> 로컬(hostPath)은 RWO만 지원합니다. RWX는 NFS 또는 클라우드 파일 스토리지(Azure Files, EFS)가 필요합니다.
+
+---
+
+## 정리 (리소스 삭제)
 
 ```bash
-kubectl get pods -l app=mysql-pv
-kubectl get pv,pvc
+kubectl delete pod data-pod-2
+kubectl delete -f deploy-with-pvc.yaml
+kubectl delete pvc local-pvc dynamic-pvc
+kubectl delete pv local-pv
 ```
 
-```text
-NAME                        READY   STATUS    RESTARTS   AGE
-mysql-pv-7d4c8f9b6d-abcde   1/1     Running   0          50s
+> PV `Reclaim Policy`가 `Retain`이면 PVC 삭제 후에도 PV가 `Released` 상태로 남습니다. 수동으로 삭제해야 합니다.
 
-NAME                                                        CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS   CLAIM               STORAGECLASS   AGE
-persistentvolume/pvc-1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d   1Gi        RWO            Delete           Bound    default/mysql-pvc   local-path     20s
+---
 
-NAME                              STATUS   VOLUME                                     CAPACITY   ACCESS MODES   STORAGECLASS   AGE
-persistentvolumeclaim/mysql-pvc   Bound    pvc-1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d   1Gi        RWO            local-path     3m
-```
+## 트러블슈팅
 
-!!! success "PV 가 자동으로 생겼습니다"
-    우리가 PV 를 직접 만들지 않았는데도 `persistentvolume/pvc-...` 가 생겼습니다. Pod 가 뜨자 StorageClass 가 PV 를 **동적으로 만들어(dynamic provisioning)** PVC 에 바인딩(`Bound`)한 것입니다. 이것이 StorageClass 를 쓰는 이유입니다.
-
-## 3. 데이터 넣기
-
-Lab 1 과 똑같이 데이터를 한 줄 넣습니다.
-
-=== "Windows (PowerShell)"
-    ```powershell
-    $POD = kubectl get pod -l app=mysql-pv -o jsonpath='{.items[0].metadata.name}'
-    kubectl exec -it $POD -- mysql -uroot -prootpw123 -e "CREATE DATABASE shop; USE shop; CREATE TABLE users(id INT, name VARCHAR(20)); INSERT INTO users VALUES (1, 'alice');"
-    ```
-
-=== "macOS / Linux"
-    ```bash
-    POD=$(kubectl get pod -l app=mysql-pv -o jsonpath='{.items[0].metadata.name}')
-    kubectl exec -it "$POD" -- mysql -uroot -prootpw123 -e "CREATE DATABASE shop; USE shop; CREATE TABLE users(id INT, name VARCHAR(20)); INSERT INTO users VALUES (1, 'alice');"
-    ```
-
-잘 들어갔는지 확인합니다.
-
-=== "Windows (PowerShell)"
-    ```powershell
-    kubectl exec -it $POD -- mysql -uroot -prootpw123 -e "SELECT * FROM shop.users;"
-    ```
-
-=== "macOS / Linux"
-    ```bash
-    kubectl exec -it "$POD" -- mysql -uroot -prootpw123 -e "SELECT * FROM shop.users;"
-    ```
-
-```text
-+------+-------+
-| id   | name  |
-+------+-------+
-|    1 | alice |
-+------+-------+
-```
-
-## 4. Pod 삭제 후 데이터 유지 확인하기
-
-이제 Lab 1 에서 데이터를 앗아갔던 바로 그 명령, `delete pod` 를 다시 실행합니다.
-
-```bash
-kubectl delete pod "$POD"
-```
-
-```text
-pod "mysql-pv-7d4c8f9b6d-abcde" deleted
-```
-
-새 Pod 가 뜰 때까지 기다린 뒤, 이름을 다시 담고 데이터를 조회합니다.
-
-=== "Windows (PowerShell)"
-    ```powershell
-    $POD = kubectl get pod -l app=mysql-pv -o jsonpath='{.items[0].metadata.name}'
-    kubectl exec -it $POD -- mysql -uroot -prootpw123 -e "SELECT * FROM shop.users;"
-    ```
-
-=== "macOS / Linux"
-    ```bash
-    POD=$(kubectl get pod -l app=mysql-pv -o jsonpath='{.items[0].metadata.name}')
-    kubectl exec -it "$POD" -- mysql -uroot -prootpw123 -e "SELECT * FROM shop.users;"
-    ```
-
-```text
-+------+-------+
-| id   | name  |
-+------+-------+
-|    1 | alice |
-+------+-------+
-```
-
-!!! success "데이터가 살아남았습니다"
-    Pod 가 완전히 새로 태어났는데도 `alice` 가 그대로 있습니다. 데이터가 컨테이너가 아니라 **PVC 가 가리키는 영속 볼륨**에 저장되었기 때문입니다. 새 Pod 는 같은 PVC 를 다시 마운트해 이전 데이터를 이어받았습니다. 이것이 Lab 1 과의 결정적 차이입니다.
-
-## PV · PVC · StorageClass 역할 구분
-
-세 가지가 헷갈리기 쉬우니 표로 정리합니다.
-
-| 리소스 | 누가 만드나 | 역할 | 비유 |
-|---|---|---|---|
-| **StorageClass** | 클러스터 관리자(k3s가 기본 제공) | 어떤 방식으로 볼륨을 만들지 정의하는 "템플릿" | 저장소 자판기의 종류 |
-| **PVC** (PersistentVolumeClaim) | 개발자(앱 담당) | "이만큼 저장소를 주세요"라는 **요청** | 자판기에 넣는 주문서 |
-| **PV** (PersistentVolume) | StorageClass가 자동 생성 | 실제로 할당된 저장 공간 | 자판기에서 나온 실물 |
-
-핵심 흐름은 이렇습니다.
-
-1. 개발자가 **PVC** 로 저장소를 요청한다.
-2. **StorageClass** 가 요청을 받아 **PV** 를 자동으로 만든다(동적 프로비저닝).
-3. PVC 와 PV 가 **Bound(연결)** 된다.
-4. Pod 가 PVC 를 볼륨으로 마운트해 데이터를 읽고 쓴다.
-
-## 검증
-
-- `kubectl get pvc` 의 `STATUS` 가 `Bound` 이다.
-- `kubectl get pv` 에 `pvc-...` 이름의 PV 가 자동 생성되어 있다.
-- Pod 를 삭제하고 새 Pod 에서 조회해도 `alice` 데이터가 유지된다.
-
-## 직접 해 보기
-
-1. `kubectl describe pvc mysql-pvc` 를 실행해, `Events` 에 `Provisioning` → `ProvisioningSucceeded` 흐름이 기록된 것을 찾아보세요.
-2. `kubectl get pvc mysql-pvc -o yaml` 로 `spec.volumeName` 필드를 확인해, PVC 가 어떤 PV 에 바인딩되었는지 보세요. `kubectl get pv` 의 이름과 일치할 것입니다.
-3. Deployment 를 삭제(`kubectl delete -f mysql-pv.yaml`)해도 PVC 와 데이터는 남습니다. 다시 `kubectl apply -f mysql-pv.yaml` 로 배포한 뒤 조회하면 데이터가 여전히 있는지 확인해 보세요.
-
-!!! failure "자주 만나는 오류"
-    **증상**: PVC 가 계속 `Pending` 이고 Pod 도 `Pending`
-    **원인**: 기본 StorageClass 가 없거나, PVC 를 쓰는 Pod 가 아직 없음.
-    **해결**: `kubectl get storageclass` 로 `(default)` 표시를 확인합니다. `local-path` 는 Pod 가 스케줄되어야 PV 를 만드므로, Deployment 가 정상 배포됐는지 `kubectl describe pod` 로 확인하세요.
-
-    ---
-
-    **증상**: Pod 가 `CrashLoopBackOff`, 로그에 `Data Dictionary initialization` 오류
-    **원인**: 다른 MySQL 버전이 쓰던 볼륨을 재사용하는 등 데이터 디렉터리 충돌.
-    **해결**: 실습용이라면 `kubectl delete pvc mysql-pvc` 로 볼륨을 비우고 처음부터 다시 만듭니다. (실무에서는 절대 함부로 지우면 안 됩니다.)
-
-## 정리
-
-다음 실습은 다른 주제(보안)로 넘어가므로 여기서 정리합니다. PVC 를 지우면 `local-path` 의 회수 정책(`Delete`)에 따라 PV 와 실제 데이터도 함께 삭제됩니다.
-
-```bash
-kubectl delete -f mysql-pv.yaml
-kubectl delete -f mysql-pvc.yaml
-```
-
-```text
-deployment.apps "mysql-pv" deleted
-persistentvolumeclaim "mysql-pvc" deleted
-```
-
-PV 가 사라졌는지 확인합니다.
-
-```bash
-kubectl get pv
-```
-
-```text
-No resources found
-```
+| 증상 | 확인 사항 |
+|---|---|
+| PVC `Pending` 상태 | StorageClass 이름 일치 여부, PV 용량이 충분한지 확인 |
+| Pod `Pending` (PVC 관련) | PVC가 `Bound` 상태인지 확인 |
+| 데이터 유실 | PV의 `Reclaim Policy`가 `Delete`이면 PVC 삭제 시 데이터 삭제됨 |
+| MySQL Pod `Error` / `CrashLoopBackOff` | 마운트 경로(`/var/lib/mysql`)에 기존 파일이 있으면 초기화 실패 — 빈 PVC를 새로 생성해서 사용 |
+| Rancher Desktop에서 PVC `Pending` 유지 | `local-path` StorageClass는 `WaitForFirstConsumer` 모드 — Pod를 배포해야 PV가 생성됨 |
 
 ---
 

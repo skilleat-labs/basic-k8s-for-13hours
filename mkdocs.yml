@@ -96,8 +96,8 @@ nav:
       - "Lab 9 · Secret": day2/09-secret.md
   - 3일차 · 영속성과 보안:
       - day3/index.md
-      - "Lab 1 · 데이터 소실 재현": day3/01-data-loss.md
-      - "Lab 2 · PV·PVC·StorageClass": day3/02-pv-pvc.md
+      - "Lab 1 · 볼륨 실습 — emptyDir": day3/01-data-loss.md
+      - "Lab 2 · 볼륨 실습 — PV / PVC": day3/02-pv-pvc.md
       - "Lab 3 · securityContext 하드닝": day3/03-securitycontext.md
       - "Lab 4 · Pod Security Admission": day3/04-pod-security-admission.md
       - "Lab 5 · RBAC 최소 권한": day3/05-rbac.md
